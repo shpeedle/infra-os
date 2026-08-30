@@ -31,6 +31,10 @@ Produce both artifacts from one generated assembly:
 - **STEP:** engineering source artifact for commercial CAD workflows.
 - **GLB:** tessellated browser preview for the web viewer.
 
+CadQuery builders use an XY floor with Z up. The GLB export applies the standard
+glTF Y-up scene transform; browser viewers must use that exported orientation
+when framing the model.
+
 Write to a unique temporary/artifact directory and publish only completed files.
 Associate each output with the scene revision, generator version, artifact ID,
 format, and units. Do not trust user-provided filenames.
