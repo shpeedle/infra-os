@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+artifacts/
+.venv/
+pnpm-lock.yaml
+__pycache__/
+*.md
+*.py

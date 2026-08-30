@@ -1,0 +1,33 @@
+{
+  "name": "infra-os",
+  "private": true,
+  "packageManager": "pnpm@11.13.1",
+  "scripts": {
+    "dev:frontend": "pnpm --filter @infra-os/frontend run dev",
+    "build": "pnpm --filter @infra-os/frontend run build",
+    "typecheck": "pnpm --filter @infra-os/frontend run typecheck",
+    "test:frontend": "pnpm --filter @infra-os/frontend run test",
+    "lint": "pnpm run lint:ts && pnpm run lint:python",
+    "lint:ts": "eslint frontend eslint.config.mjs",
+    "lint:python": ".venv/bin/ruff check backend cadquery",
+    "lint:fix": "eslint frontend eslint.config.mjs --fix && .venv/bin/ruff check backend cadquery --fix",
+    "format:ts": "prettier --write .",
+    "format:python": ".venv/bin/ruff format backend cadquery",
+    "format": "pnpm run format:ts && pnpm run format:python",
+    "format:ts:check": "prettier --check .",
+    "format:python:check": ".venv/bin/ruff format --check backend cadquery",
+    "format:check": "pnpm run format:ts:check && pnpm run format:python:check",
+    "test:python": ".venv/bin/python -m pytest backend/tests",
+    "test": "pnpm run test:frontend && pnpm run test:python"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-react-refresh": "^0.4.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

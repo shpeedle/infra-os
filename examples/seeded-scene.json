@@ -1,0 +1,195 @@
+{
+  "schema_version": "1.0",
+  "project": {
+    "project_id": "north-hall",
+    "name": "North Hall pilot",
+    "description": "A small two-bus data-center layout for the geometry proof."
+  },
+  "revision": 1,
+  "units": "m",
+  "coordinate_system": "room-local-south-west",
+  "canvas": {
+    "pixels_per_meter": 50,
+    "origin": "south-west"
+  },
+  "room": {
+    "id": "room-main",
+    "type": "room",
+    "label": "North Hall",
+    "position_m": {
+      "x": 0,
+      "y": 0
+    },
+    "dimensions_m": {
+      "x": 24,
+      "y": 12,
+      "z": 3.2
+    }
+  },
+  "entities": [
+    {
+      "id": "pdu-a",
+      "type": "power",
+      "label": "PDU A",
+      "position_m": {
+        "x": 1.5,
+        "y": 8.6
+      },
+      "dimensions_m": {
+        "x": 1.2,
+        "y": 1,
+        "z": 2.2
+      },
+      "capacity_kw": 30
+    },
+    {
+      "id": "pdu-b",
+      "type": "power",
+      "label": "PDU B",
+      "position_m": {
+        "x": 1.5,
+        "y": 2.4
+      },
+      "dimensions_m": {
+        "x": 1.2,
+        "y": 1,
+        "z": 2.2
+      },
+      "capacity_kw": 30
+    },
+    {
+      "id": "rack-01",
+      "type": "rack",
+      "label": "Rack 01",
+      "position_m": {
+        "x": 5,
+        "y": 8.5
+      },
+      "dimensions_m": {
+        "x": 0.6,
+        "y": 1.1,
+        "z": 2
+      },
+      "rack_u": 42,
+      "power_draw_kw": 4.8
+    },
+    {
+      "id": "rack-02",
+      "type": "rack",
+      "label": "Rack 02",
+      "position_m": {
+        "x": 7,
+        "y": 8.5
+      },
+      "dimensions_m": {
+        "x": 0.6,
+        "y": 1.1,
+        "z": 2
+      },
+      "rack_u": 42,
+      "power_draw_kw": 4.8
+    },
+    {
+      "id": "rack-03",
+      "type": "rack",
+      "label": "Rack 03",
+      "position_m": {
+        "x": 9,
+        "y": 8.5
+      },
+      "dimensions_m": {
+        "x": 0.6,
+        "y": 1.1,
+        "z": 2
+      },
+      "rack_u": 42,
+      "power_draw_kw": 4.8
+    },
+    {
+      "id": "rack-04",
+      "type": "rack",
+      "label": "Rack 04",
+      "position_m": {
+        "x": 5,
+        "y": 2.3
+      },
+      "dimensions_m": {
+        "x": 0.6,
+        "y": 1.1,
+        "z": 2
+      },
+      "rack_u": 42,
+      "power_draw_kw": 4.8
+    },
+    {
+      "id": "rack-05",
+      "type": "rack",
+      "label": "Rack 05",
+      "position_m": {
+        "x": 7,
+        "y": 2.3
+      },
+      "dimensions_m": {
+        "x": 0.6,
+        "y": 1.1,
+        "z": 2
+      },
+      "rack_u": 42,
+      "power_draw_kw": 4.8
+    },
+    {
+      "id": "rack-06",
+      "type": "rack",
+      "label": "Rack 06",
+      "position_m": {
+        "x": 9,
+        "y": 2.3
+      },
+      "dimensions_m": {
+        "x": 0.6,
+        "y": 1.1,
+        "z": 2
+      },
+      "rack_u": 42,
+      "power_draw_kw": 4.8
+    }
+  ],
+  "connections": [
+    {
+      "id": "power-a-rack-01",
+      "type": "power",
+      "source_id": "pdu-a",
+      "target_id": "rack-01"
+    },
+    {
+      "id": "power-a-rack-02",
+      "type": "power",
+      "source_id": "pdu-a",
+      "target_id": "rack-02"
+    },
+    {
+      "id": "power-a-rack-03",
+      "type": "power",
+      "source_id": "pdu-a",
+      "target_id": "rack-03"
+    },
+    {
+      "id": "power-b-rack-04",
+      "type": "power",
+      "source_id": "pdu-b",
+      "target_id": "rack-04"
+    },
+    {
+      "id": "power-b-rack-05",
+      "type": "power",
+      "source_id": "pdu-b",
+      "target_id": "rack-05"
+    },
+    {
+      "id": "power-b-rack-06",
+      "type": "power",
+      "source_id": "pdu-b",
+      "target_id": "rack-06"
+    }
+  ]
+}
