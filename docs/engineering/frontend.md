@@ -171,6 +171,9 @@ Ready → Generating → Generated
   failure.
 - Replace the viewer only after a complete GLB artifact is available.
 - Provide orbit, pan, zoom, fit-to-scene, and reset-view controls.
+- Treat generated GLB scenes as glTF Y-up in the browser. The initial and reset
+  views should use an elevated isometric camera, keep the floor below equipment,
+  and frame the complete assembly.
 - Give the viewer most of its area and keep chrome minimal.
 - Show loading, empty, unavailable, and failed-model states distinctly.
 - Keep STEP and GLB download actions explicit and distinguish engineering output

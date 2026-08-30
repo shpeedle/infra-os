@@ -1,10 +1,21 @@
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
-import { Component, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Component,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 import { THEME_COLORS, type Theme } from "../theme";
+
+const DEFAULT_ISOMETRIC_DIRECTION = new THREE.Vector3(1, 1, 1).normalize();
+const DEFAULT_VIEW_PADDING = 1.2;
 
 interface ModelViewerProps {
   url: string | null;
@@ -16,6 +27,9 @@ export function ModelViewer({ url, theme }: ModelViewerProps) {
   const [resetRequest, setResetRequest] = useState(0);
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const markLoaded = useCallback(() => {
+    if (url) setLoadedUrl(url);
+  }, [url]);
   const colors = THEME_COLORS[theme];
   const loadState: "empty" | "loading" | "ready" | "error" = !url
     ? "empty"
@@ -72,20 +86,20 @@ export function ModelViewer({ url, theme }: ModelViewerProps) {
             }
           >
             <Canvas
-              camera={{ position: [14, -18, 14], fov: 45, near: 0.1, far: 1000 }}
+              camera={{ position: [20, 20, 20], fov: 45, near: 0.1, far: 1_000_000 }}
               dpr={[1, 2]}
-              onCreated={({ camera }) => camera.up.set(0, 0, 1)}
+              onCreated={({ camera }) => camera.up.set(0, 1, 0)}
             >
               <color attach="background" args={[colors.viewerBackground]} />
               <ambientLight intensity={1.5} />
-              <directionalLight position={[8, -8, 16]} intensity={2.2} />
+              <directionalLight position={[8, 16, 8]} intensity={2.2} />
               <Suspense fallback={null}>
                 <ModelScene
                   url={url}
                   theme={theme}
                   fitRequest={fitRequest}
                   resetRequest={resetRequest}
-                  onReady={() => setLoadedUrl(url)}
+                  onReady={markLoaded}
                 />
               </Suspense>
             </Canvas>
@@ -128,22 +142,25 @@ function ModelScene({ url, theme, fitRequest, resetRequest, onReady }: ModelScen
 
   useEffect(() => {
     if (resetRequest > 0) {
-      camera.position.set(14, -18, 14);
-      camera.lookAt(0, 0, 0);
-      controls.current?.target.set(0, 0, 0);
-      controls.current?.update();
+      fitCamera(gltf.scene, camera, controls.current);
     }
-  }, [camera, resetRequest]);
+  }, [camera, gltf.scene, resetRequest]);
 
   return (
     <>
       <primitive object={gltf.scene} />
       <gridHelper
         args={[40, 40, THEME_COLORS[theme].viewerGridMajor, THEME_COLORS[theme].viewerGridMinor]}
-        rotation={[Math.PI / 2, 0, 0]}
       />
       <axesHelper args={[3]} />
-      <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.08} />
+      <OrbitControls
+        ref={controls}
+        makeDefault
+        enableDamping
+        dampingFactor={0.08}
+        minPolarAngle={0.05}
+        maxPolarAngle={Math.PI / 2 - 0.05}
+      />
     </>
   );
 }
@@ -154,17 +171,35 @@ function fitCamera(
   controls: OrbitControlsImpl | null,
 ) {
   const bounds = new THREE.Box3().setFromObject(object);
+  if (bounds.isEmpty()) return;
+
   const center = bounds.getCenter(new THREE.Vector3());
-  const size = bounds.getSize(new THREE.Vector3());
-  const radius = Math.max(size.x, size.y, size.z, 1);
-  camera.position.set(center.x + radius * 1.35, center.y - radius * 1.35, center.z + radius * 1.1);
+  const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+  const distance = getFitDistance(Math.max(sphere.radius, 1), camera);
+
+  // CadQuery exports GLB with the standard glTF Y-up scene transform. Keep the
+  // camera and helpers in that coordinate system so the floor stays horizontal.
+  camera.up.set(0, 1, 0);
+  camera.position.copy(center).addScaledVector(DEFAULT_ISOMETRIC_DIRECTION, distance);
   camera.lookAt(center);
   if (camera instanceof THREE.PerspectiveCamera) {
-    camera.far = Math.max(1000, radius * 20);
+    camera.near = Math.max(distance / 1000, 0.1);
+    camera.far = Math.max(1000, distance * 10);
     camera.updateProjectionMatrix();
   }
   controls?.target.copy(center);
   controls?.update();
+}
+
+function getFitDistance(radius: number, camera: THREE.Camera): number {
+  if (!(camera instanceof THREE.PerspectiveCamera)) return radius * 3 * DEFAULT_VIEW_PADDING;
+
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const aspect = Math.max(camera.aspect, 0.01);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * aspect);
+  const limitingHalfFov = Math.min(verticalFov, horizontalFov) / 2;
+
+  return (radius / Math.sin(limitingHalfFov)) * DEFAULT_VIEW_PADDING;
 }
 
 interface ViewerErrorBoundaryProps {
