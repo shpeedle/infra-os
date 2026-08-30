@@ -50,6 +50,26 @@ directory.
 7. Review the diff for unrelated changes, generated artifacts, secrets, and stale
    documentation.
 
+## GitHub Contribution Workflow
+
+When the repository is under Git, use a task branch and merge through a pull
+request:
+
+1. Update the local default branch: `git switch main` followed by
+   `git pull --ff-only origin main`.
+2. Create a task branch: `git switch -c <type>/<short-description>`.
+3. Implement the change, update tests and durable documentation, and run the
+   repository checks.
+4. Commit the change, push the branch with `git push -u origin <branch>`, and
+   open a pull request targeting `main`.
+5. After review and required checks pass, merge the pull request on GitHub.
+6. Refresh the local default branch after the merge:
+   `git switch main` followed by `git pull --ff-only origin main`.
+
+Delete the local task branch when it is no longer needed with
+`git branch -d <branch>`. Delete the remote branch only when the repository's
+branch-retention policy allows it.
+
 ## Local Development
 
 Local development uses the commands in the root package manifest and README. At
