@@ -88,6 +88,13 @@ Each screen has one primary job. A diagram workspace may contain a canvas and
 an inspector because both serve editing the same diagram; it should not also
 become a project list, report, or settings screen.
 
+Keep pages calm as features accumulate. When supporting details become a
+substantial task, need their own navigation or state, or begin competing with
+the page's primary job, move them to a dedicated route. Use a modal dialog for
+a focused, self-contained form or small group of settings when preserving the
+current page context helps the user. Do not use dialogs as overflow containers
+for large, deeply navigable, or routinely referenced content.
+
 Use a stable shell:
 
 ```text
@@ -211,6 +218,9 @@ Prevent stale or out-of-order responses from replacing newer scene revisions.
   `Save diagram`.
 - Give inputs persistent visible labels and show validation beside the field.
 - Preserve valid edits after validation or network errors.
+- Use a focused dialog for a short form or settings task that belongs to the
+  current context. Use a dedicated page when the task needs substantial space,
+  multiple sections or steps, deep linking, or frequent reference while working.
 - Make unsaved state and save behavior visible.
 - Keep destructive actions separated, clearly labeled, and reversible where the
   product allows it.
@@ -291,6 +301,8 @@ Test observable behavior rather than private implementation details.
 ## Review Checklist
 
 - [ ] The primary task and primary action are obvious.
+- [ ] Supporting detail does not make the page busy; substantial secondary tasks
+      have a dedicated route and focused contextual forms use dialogs appropriately.
 - [ ] Domain scene state is separate from UI and viewport state.
 - [ ] Existing primitives and patterns were reused.
 - [ ] Loading, empty, success, error, and retry behavior are explicit.
