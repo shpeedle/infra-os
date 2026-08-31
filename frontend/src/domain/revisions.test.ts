@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { createSeedScene } from "./scene";
-import { loadRevisionSnapshots, MAX_REVISION_SNAPSHOTS, saveRevisionSnapshot } from "./revisions";
+import {
+  compareScenes,
+  loadRevisionSnapshots,
+  MAX_REVISION_SNAPSHOTS,
+  saveRevisionSnapshot,
+} from "./revisions";
 
 function memoryStorage() {
   const values = new Map<string, string>();
@@ -47,5 +52,21 @@ describe("revision snapshots", () => {
     expect(snapshots).toHaveLength(MAX_REVISION_SNAPSHOTS);
     expect(snapshots[0].revision).toBe(MAX_REVISION_SNAPSHOTS + 5);
     expect(snapshots.at(-1)?.revision).toBe(6);
+  });
+
+  it("reports entity and connection changes between revisions", () => {
+    const older = createSeedScene();
+    const newer = createSeedScene();
+    newer.entities = newer.entities.slice(0, -1);
+    newer.connections = newer.connections.slice(0, -1);
+    newer.entities[2].label = "Rack 01 revised";
+
+    expect(compareScenes(older, newer)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ subject: "rack-06", detail: expect.stringContaining("Removed") }),
+        expect.objectContaining({ subject: "power-b-rack-06", detail: "Power connection removed" }),
+        expect.objectContaining({ subject: "rack-01", detail: "Rack 01 changed" }),
+      ]),
+    );
   });
 });

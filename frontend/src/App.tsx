@@ -35,6 +35,7 @@ import {
   type SceneEntity,
 } from "./domain/scene";
 import {
+  compareScenes,
   formatRevisionDate,
   loadRevisionSnapshots,
   saveRevisionSnapshot,
@@ -73,6 +74,10 @@ type GenerationState =
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(loadInitialScene);
+  const [comparisonRevisions, setComparisonRevisions] = useState<[number | null, number | null]>([
+    null,
+    null,
+  ]);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
@@ -105,6 +110,14 @@ export default function App() {
     if (stored.some((snapshot) => snapshot.revision === scene.revision)) return stored;
     return [{ revision: scene.revision, saved_at: new Date().toISOString(), scene }, ...stored];
   }, [scene]);
+  const comparison = useMemo(() => {
+    const [leftRevision, rightRevision] = comparisonRevisions;
+    if (leftRevision === null || rightRevision === null || leftRevision === rightRevision)
+      return null;
+    const left = revisionSnapshots.find((snapshot) => snapshot.revision === leftRevision);
+    const right = revisionSnapshots.find((snapshot) => snapshot.revision === rightRevision);
+    return left && right ? { changes: compareScenes(left.scene, right.scene) } : null;
+  }, [comparisonRevisions, revisionSnapshots]);
 
   useEffect(() => {
     try {
@@ -470,6 +483,71 @@ export default function App() {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+                {revisionSnapshots.length >= 2 && (
+                  <div className="revision-compare">
+                    <span className="eyebrow">Compare revisions</span>
+                    <label>
+                      From
+                      <select
+                        value={comparisonRevisions[0] ?? ""}
+                        onChange={(event) =>
+                          setComparisonRevisions(([, right]) => [
+                            event.target.value ? Number(event.target.value) : null,
+                            right,
+                          ])
+                        }
+                      >
+                        <option value="">Select revision</option>
+                        {revisionSnapshots.map((snapshot) => (
+                          <option key={`from-${snapshot.revision}`} value={snapshot.revision}>
+                            rev {String(snapshot.revision).padStart(2, "0")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      To
+                      <select
+                        value={comparisonRevisions[1] ?? ""}
+                        onChange={(event) =>
+                          setComparisonRevisions(([left]) => [
+                            left,
+                            event.target.value ? Number(event.target.value) : null,
+                          ])
+                        }
+                      >
+                        <option value="">Select revision</option>
+                        {revisionSnapshots.map((snapshot) => (
+                          <option key={`to-${snapshot.revision}`} value={snapshot.revision}>
+                            rev {String(snapshot.revision).padStart(2, "0")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {comparison && (
+                      <div className="comparison-result" aria-live="polite">
+                        <strong>
+                          {comparison.changes.length} change
+                          {comparison.changes.length === 1 ? "" : "s"}
+                        </strong>
+                        {comparison.changes.length === 0 ? (
+                          <span className="helper-text">The scenes are identical.</span>
+                        ) : (
+                          comparison.changes.slice(0, 8).map((change) => (
+                            <span key={`${change.subject}-${change.detail}`}>
+                              <code>{change.subject}</code> {change.detail}
+                            </span>
+                          ))
+                        )}
+                        {comparison.changes.length > 8 && (
+                          <span className="helper-text">
+                            + {comparison.changes.length - 8} more
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </details>

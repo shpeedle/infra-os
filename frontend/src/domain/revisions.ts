@@ -9,6 +9,11 @@ export interface RevisionSnapshot {
   scene: Scene;
 }
 
+export interface RevisionChange {
+  subject: string;
+  detail: string;
+}
+
 interface StorageLike {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -88,4 +93,43 @@ export function formatRevisionDate(savedAt: string): string {
   return Number.isNaN(date.valueOf())
     ? "Unknown time"
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function json(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+export function compareScenes(left: Scene, right: Scene): RevisionChange[] {
+  const changes: RevisionChange[] = [];
+  if (left.project.name !== right.project.name) {
+    changes.push({
+      subject: "Project name",
+      detail: `${left.project.name} → ${right.project.name}`,
+    });
+  }
+  if (json(left.room) !== json(right.room)) {
+    changes.push({ subject: "Room", detail: "Room label, position, or dimensions changed" });
+  }
+  const leftEntities = new Map(left.entities.map((entity) => [entity.id, entity]));
+  const rightEntities = new Map(right.entities.map((entity) => [entity.id, entity]));
+  for (const [id, entity] of rightEntities) {
+    const previous = leftEntities.get(id);
+    if (!previous) changes.push({ subject: id, detail: `Added ${entity.type} · ${entity.label}` });
+    else if (json(previous) !== json(entity))
+      changes.push({ subject: id, detail: `${previous.label} changed` });
+  }
+  for (const [id, entity] of leftEntities) {
+    if (!rightEntities.has(id))
+      changes.push({ subject: id, detail: `Removed ${entity.type} · ${entity.label}` });
+  }
+  const leftConnections = new Set(left.connections.map((connection) => connection.id));
+  const rightConnections = new Set(right.connections.map((connection) => connection.id));
+  for (const id of rightConnections) {
+    if (!leftConnections.has(id)) changes.push({ subject: id, detail: "Power connection added" });
+  }
+  for (const id of leftConnections) {
+    if (!rightConnections.has(id))
+      changes.push({ subject: id, detail: "Power connection removed" });
+  }
+  return changes;
 }
