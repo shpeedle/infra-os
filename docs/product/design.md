@@ -204,6 +204,13 @@ Each screen should have a primary task a user can name. A diagram workspace may
 include an inspector because both support diagram editing; it should not also
 serve as an unrelated project list or report.
 
+Do not keep adding panels, controls, and details until a page becomes busy. Give
+a substantial detail view its own page when it has a distinct task, needs room
+to scan, or benefits from navigation and a shareable location. Use a modal
+dialog for a focused form or small settings task when the user should remain in
+the current context. A dialog should be easy to understand and complete without
+turning into a miniature page.
+
 ### Disclose Complexity Progressively
 
 Lead with the next decision. Keep advanced topology, capacity, CAD, and future
@@ -226,6 +233,8 @@ before they can place a rack or inspect a model.
 ## Design Review Checklist
 
 - [ ] Is the user's next decision obvious?
+- [ ] Has accumulating detail been moved to a dedicated page or a focused dialog
+      instead of making the current surface busy?
 - [ ] Is the current project, scene revision, selection, and model status clear?
 - [ ] Are the canvas/viewer and supporting panels hierarchically distinct?
 - [ ] Are rectangular geometry and deliberate thin/thick borders used consistently?
