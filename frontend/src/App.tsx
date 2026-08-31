@@ -35,6 +35,12 @@ import {
   type SceneEntity,
 } from "./domain/scene";
 import {
+  formatRevisionDate,
+  loadRevisionSnapshots,
+  saveRevisionSnapshot,
+  type RevisionSnapshot,
+} from "./domain/revisions";
+import {
   flowPositionToScenePosition,
   sceneToFlowEdges,
   sceneToFlowNodes,
@@ -94,6 +100,11 @@ export default function App() {
   const glbUrl = artifact
     ? artifactUrl(artifact.formats.find((format) => format.format === "glb")?.download_url ?? "")
     : null;
+  const revisionSnapshots = useMemo(() => {
+    const stored = loadRevisionSnapshots(scene.project.project_id);
+    if (stored.some((snapshot) => snapshot.revision === scene.revision)) return stored;
+    return [{ revision: scene.revision, saved_at: new Date().toISOString(), scene }, ...stored];
+  }, [scene]);
 
   useEffect(() => {
     try {
@@ -101,6 +112,7 @@ export default function App() {
     } catch {
       // Local persistence is a convenience; the explicit JSON export remains available.
     }
+    saveRevisionSnapshot(scene);
   }, [scene]);
 
   useEffect(() => {
@@ -287,6 +299,14 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function loadRevision(snapshot: RevisionSnapshot) {
+    setScene(snapshot.scene);
+    setDragPositions({});
+    setSelectedEntityId(null);
+    setSelectedConnectionId(null);
+    setImportMessage(`Loaded revision ${snapshot.revision}. Generate CAD to update the preview.`);
+  }
+
   async function importScene(file: File | undefined) {
     if (!file) return;
     if (file.size > MAX_SCENE_BYTES) {
@@ -423,6 +443,36 @@ export default function App() {
                 accept="application/json,.json"
                 onChange={(event) => void importScene(event.target.files?.[0])}
               />
+            </div>
+            <div className="sidebar-section revision-history">
+              <details>
+                <summary>Revision history ({revisionSnapshots.length})</summary>
+                {revisionSnapshots.length === 0 ? (
+                  <p className="helper-text">Saved revisions will appear here as you edit.</p>
+                ) : (
+                  <div className="revision-list">
+                    {revisionSnapshots.map((snapshot) => (
+                      <div
+                        className="revision-item"
+                        key={`${snapshot.revision}-${snapshot.saved_at}`}
+                      >
+                        <div>
+                          <code>rev {String(snapshot.revision).padStart(2, "0")}</code>
+                          <span>{formatRevisionDate(snapshot.saved_at)}</span>
+                        </div>
+                        <button
+                          className="button button--quiet"
+                          type="button"
+                          onClick={() => loadRevision(snapshot)}
+                          disabled={snapshot.revision === scene.revision}
+                        >
+                          Load
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </details>
             </div>
             <div className="sidebar-footer">
               <span className="save-indicator">● Local draft saved</span>
