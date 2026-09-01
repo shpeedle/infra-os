@@ -52,6 +52,15 @@ behavior visible: distinguish an in-memory edit, a browser draft, and a generate
 CAD artifact. Do not imply server persistence or multi-user collaboration before
 those capabilities exist.
 
+The frontend also keeps a bounded history of immutable scene snapshots in
+browser storage, partitioned by `project_id`. The revision timeline can load a
+past snapshot back into the editor; loading it does not regenerate CAD, and any
+artifact from another revision remains explicitly stale until the user generates
+again. This is a convenience history for the current browser, not durable
+project history, audit provenance, or collaboration. The timeline can compare
+two saved snapshots for the currently modeled fields; this comparison is
+read-only and does not replace server-backed provenance or merge semantics.
+
 ## Future Storage
 
 When durable storage is introduced:

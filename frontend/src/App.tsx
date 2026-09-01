@@ -35,6 +35,13 @@ import {
   type SceneEntity,
 } from "./domain/scene";
 import {
+  compareScenes,
+  formatRevisionDate,
+  loadRevisionSnapshots,
+  saveRevisionSnapshot,
+  type RevisionSnapshot,
+} from "./domain/revisions";
+import {
   flowPositionToScenePosition,
   sceneToFlowEdges,
   sceneToFlowNodes,
@@ -67,6 +74,10 @@ type GenerationState =
 
 export default function App() {
   const [scene, setScene] = useState<Scene>(loadInitialScene);
+  const [comparisonRevisions, setComparisonRevisions] = useState<[number | null, number | null]>([
+    null,
+    null,
+  ]);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
@@ -94,6 +105,19 @@ export default function App() {
   const glbUrl = artifact
     ? artifactUrl(artifact.formats.find((format) => format.format === "glb")?.download_url ?? "")
     : null;
+  const revisionSnapshots = useMemo(() => {
+    const stored = loadRevisionSnapshots(scene.project.project_id);
+    if (stored.some((snapshot) => snapshot.revision === scene.revision)) return stored;
+    return [{ revision: scene.revision, saved_at: new Date().toISOString(), scene }, ...stored];
+  }, [scene]);
+  const comparison = useMemo(() => {
+    const [leftRevision, rightRevision] = comparisonRevisions;
+    if (leftRevision === null || rightRevision === null || leftRevision === rightRevision)
+      return null;
+    const left = revisionSnapshots.find((snapshot) => snapshot.revision === leftRevision);
+    const right = revisionSnapshots.find((snapshot) => snapshot.revision === rightRevision);
+    return left && right ? { changes: compareScenes(left.scene, right.scene) } : null;
+  }, [comparisonRevisions, revisionSnapshots]);
 
   useEffect(() => {
     try {
@@ -101,6 +125,7 @@ export default function App() {
     } catch {
       // Local persistence is a convenience; the explicit JSON export remains available.
     }
+    saveRevisionSnapshot(scene);
   }, [scene]);
 
   useEffect(() => {
@@ -287,6 +312,14 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function loadRevision(snapshot: RevisionSnapshot) {
+    setScene(snapshot.scene);
+    setDragPositions({});
+    setSelectedEntityId(null);
+    setSelectedConnectionId(null);
+    setImportMessage(`Loaded revision ${snapshot.revision}. Generate CAD to update the preview.`);
+  }
+
   async function importScene(file: File | undefined) {
     if (!file) return;
     if (file.size > MAX_SCENE_BYTES) {
@@ -423,6 +456,101 @@ export default function App() {
                 accept="application/json,.json"
                 onChange={(event) => void importScene(event.target.files?.[0])}
               />
+            </div>
+            <div className="sidebar-section revision-history">
+              <details>
+                <summary>Revision history ({revisionSnapshots.length})</summary>
+                {revisionSnapshots.length === 0 ? (
+                  <p className="helper-text">Saved revisions will appear here as you edit.</p>
+                ) : (
+                  <div className="revision-list">
+                    {revisionSnapshots.map((snapshot) => (
+                      <div
+                        className="revision-item"
+                        key={`${snapshot.revision}-${snapshot.saved_at}`}
+                      >
+                        <div>
+                          <code>rev {String(snapshot.revision).padStart(2, "0")}</code>
+                          <span>{formatRevisionDate(snapshot.saved_at)}</span>
+                        </div>
+                        <button
+                          className="button button--quiet"
+                          type="button"
+                          onClick={() => loadRevision(snapshot)}
+                          disabled={snapshot.revision === scene.revision}
+                        >
+                          Load
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {revisionSnapshots.length >= 2 && (
+                  <div className="revision-compare">
+                    <span className="eyebrow">Compare revisions</span>
+                    <label>
+                      From
+                      <select
+                        value={comparisonRevisions[0] ?? ""}
+                        onChange={(event) =>
+                          setComparisonRevisions(([, right]) => [
+                            event.target.value ? Number(event.target.value) : null,
+                            right,
+                          ])
+                        }
+                      >
+                        <option value="">Select revision</option>
+                        {revisionSnapshots.map((snapshot) => (
+                          <option key={`from-${snapshot.revision}`} value={snapshot.revision}>
+                            rev {String(snapshot.revision).padStart(2, "0")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      To
+                      <select
+                        value={comparisonRevisions[1] ?? ""}
+                        onChange={(event) =>
+                          setComparisonRevisions(([left]) => [
+                            left,
+                            event.target.value ? Number(event.target.value) : null,
+                          ])
+                        }
+                      >
+                        <option value="">Select revision</option>
+                        {revisionSnapshots.map((snapshot) => (
+                          <option key={`to-${snapshot.revision}`} value={snapshot.revision}>
+                            rev {String(snapshot.revision).padStart(2, "0")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {comparison && (
+                      <div className="comparison-result" aria-live="polite">
+                        <strong>
+                          {comparison.changes.length} change
+                          {comparison.changes.length === 1 ? "" : "s"}
+                        </strong>
+                        {comparison.changes.length === 0 ? (
+                          <span className="helper-text">The scenes are identical.</span>
+                        ) : (
+                          comparison.changes.slice(0, 8).map((change) => (
+                            <span key={`${change.subject}-${change.detail}`}>
+                              <code>{change.subject}</code> {change.detail}
+                            </span>
+                          ))
+                        )}
+                        {comparison.changes.length > 8 && (
+                          <span className="helper-text">
+                            + {comparison.changes.length - 8} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </details>
             </div>
             <div className="sidebar-footer">
               <span className="save-indicator">● Local draft saved</span>
