@@ -42,6 +42,13 @@ import {
   type RevisionSnapshot,
 } from "./domain/revisions";
 import {
+  commitScene,
+  createSceneHistory,
+  redoScene,
+  undoScene,
+  type SceneHistory,
+} from "./domain/sceneHistory";
+import {
   flowPositionToScenePosition,
   sceneToFlowEdges,
   sceneToFlowNodes,
@@ -73,7 +80,11 @@ type GenerationState =
     };
 
 export default function App() {
-  const [scene, setScene] = useState<Scene>(loadInitialScene);
+  const [sceneHistory, setSceneHistory] = useState<SceneHistory>(() =>
+    createSceneHistory(loadInitialScene()),
+  );
+  const scene = sceneHistory.present;
+  const [revisionRefresh, setRevisionRefresh] = useState(0);
   const [comparisonRevisions, setComparisonRevisions] = useState<[number | null, number | null]>([
     null,
     null,
@@ -106,10 +117,11 @@ export default function App() {
     ? artifactUrl(artifact.formats.find((format) => format.format === "glb")?.download_url ?? "")
     : null;
   const revisionSnapshots = useMemo(() => {
+    void revisionRefresh;
     const stored = loadRevisionSnapshots(scene.project.project_id);
     if (stored.some((snapshot) => snapshot.revision === scene.revision)) return stored;
     return [{ revision: scene.revision, saved_at: new Date().toISOString(), scene }, ...stored];
-  }, [scene]);
+  }, [scene, revisionRefresh]);
   const comparison = useMemo(() => {
     const [leftRevision, rightRevision] = comparisonRevisions;
     if (leftRevision === null || rightRevision === null || leftRevision === rightRevision)
@@ -125,7 +137,6 @@ export default function App() {
     } catch {
       // Local persistence is a convenience; the explicit JSON export remains available.
     }
-    saveRevisionSnapshot(scene);
   }, [scene]);
 
   useEffect(() => {
@@ -153,6 +164,16 @@ export default function App() {
         setSelectedEntityId(null);
         setSelectedConnectionId(null);
       }
+      const modifier = event.ctrlKey || event.metaKey;
+      if (modifier && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        setSceneHistory((history) => (event.shiftKey ? redoScene(history) : undoScene(history)));
+        setDragPositions({});
+      } else if (modifier && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        setSceneHistory(redoScene);
+        setDragPositions({});
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedEntityId) {
         event.preventDefault();
         removeEntity(selectedEntityId);
@@ -165,8 +186,16 @@ export default function App() {
   useEffect(() => () => abortController.current?.abort(), []);
 
   function updateScene(update: (current: Scene) => Scene) {
-    setScene((current) => ({ ...update(current), revision: current.revision + 1 }));
+    setSceneHistory((history) =>
+      commitScene(history, { ...update(history.present), revision: history.present.revision + 1 }),
+    );
     setDragPositions({});
+  }
+
+  function saveCurrentRevision() {
+    saveRevisionSnapshot(scene);
+    setRevisionRefresh((value) => value + 1);
+    setImportMessage(`Saved revision ${scene.revision}.`);
   }
 
   function updateEntityField(field: EntityField, value: string | number) {
@@ -313,7 +342,7 @@ export default function App() {
   }
 
   function loadRevision(snapshot: RevisionSnapshot) {
-    setScene(snapshot.scene);
+    setSceneHistory(createSceneHistory(snapshot.scene));
     setDragPositions({});
     setSelectedEntityId(null);
     setSelectedConnectionId(null);
@@ -330,7 +359,7 @@ export default function App() {
     }
     try {
       const imported = decodeSceneJson(await file.text());
-      setScene(imported);
+      setSceneHistory(createSceneHistory(imported));
       setDragPositions({});
       setSelectedEntityId(null);
       setImportMessage(
@@ -436,6 +465,37 @@ export default function App() {
             </div>
             <div className="sidebar-section sidebar-section--actions">
               <span className="eyebrow">Scene JSON</span>
+              <div className="history-actions">
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={saveCurrentRevision}
+                >
+                  Save revision
+                </button>
+                <button
+                  className="button button--quiet"
+                  type="button"
+                  onClick={() => {
+                    setSceneHistory(undoScene);
+                    setDragPositions({});
+                  }}
+                  disabled={sceneHistory.past.length === 0}
+                >
+                  Undo
+                </button>
+                <button
+                  className="button button--quiet"
+                  type="button"
+                  onClick={() => {
+                    setSceneHistory(redoScene);
+                    setDragPositions({});
+                  }}
+                  disabled={sceneHistory.future.length === 0}
+                >
+                  Redo
+                </button>
+              </div>
               <button className="button button--secondary" type="button" onClick={addRack}>
                 + Add rack
               </button>
