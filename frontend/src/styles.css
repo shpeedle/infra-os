@@ -475,6 +475,17 @@ code {
   padding: 14px;
 }
 
+.history-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1fr 1fr;
+  gap: 6px;
+}
+
+.history-actions .button {
+  min-width: 0;
+  padding-inline: 7px;
+}
+
 .revision-history details {
   border-top: 1px solid var(--line);
 }
