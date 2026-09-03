@@ -93,14 +93,18 @@ function parseApiError(payload: unknown, status: number): ApiRequestError {
 
 function isGenerateResponse(value: unknown): value is GenerateResponse {
   if (!isRecord(value)) return false;
+  const formats = value.formats;
   return (
     typeof value.artifact_id === "string" &&
     typeof value.scene_revision === "number" &&
     typeof value.scene_digest === "string" &&
     typeof value.generator_version === "string" &&
     typeof value.duration_ms === "number" &&
-    Array.isArray(value.formats) &&
-    value.formats.every(isArtifactFormat)
+    Array.isArray(formats) &&
+    formats.length > 0 &&
+    formats.every(isArtifactFormat) &&
+    formats.some((format) => format.format === "step") &&
+    formats.some((format) => format.format === "glb")
   );
 }
 
